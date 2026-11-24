@@ -1,10 +1,20 @@
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, cp } from 'node:fs/promises';
 
-const read = name => readFile(new URL(name, import.meta.url),'utf8');
-const [html,javascript,worker,manifest]=await Promise.all(['index.html','app.js','worker.mjs','.openai/hosting.json'].map(read));
-const assets='const html='+JSON.stringify(html)+';\nconst javascript='+JSON.stringify(javascript)+';\n';
-await Promise.all(['dist/server','dist/.openai'].map(path=>mkdir(new URL(path,import.meta.url),{recursive:true})));
+const file = path => new URL(path,import.meta.url);
+const read = path => readFile(file(path),'utf8');
+const [html,javascript,css,rules,manifest]=await Promise.all([
+  read('ui/index.html'),read('ui/app.js'),read('ui/styles.css'),read('src/domain/bingo-card.mjs'),read('.openai/hosting.json'),
+]);
+const assets={
+  '/':{body:html,type:'text/html; charset=utf-8'},
+  '/app.js':{body:javascript,type:'text/javascript; charset=utf-8'},
+  '/styles.css':{body:css,type:'text/css; charset=utf-8'},
+  '/bingo-card.js':{body:rules,type:'text/javascript; charset=utf-8'},
+};
+await Promise.all(['dist/server/','dist/.openai/'].map(path=>mkdir(file(path),{recursive:true})));
 await Promise.all([
-  writeFile(new URL('dist/server/index.js',import.meta.url),worker.replace("import { html, javascript } from './assets.mjs';",assets)),
-  writeFile(new URL('dist/.openai/hosting.json',import.meta.url),manifest),
+  cp(file('worker.mjs'),file('dist/server/index.js')),
+  cp(file('src/'),file('dist/server/src/'),{recursive:true}),
+  writeFile(file('dist/server/assets.mjs'),'export const assets='+JSON.stringify(assets)+';\n'),
+  writeFile(file('dist/.openai/hosting.json'),manifest),
 ]);
