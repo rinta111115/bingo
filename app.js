@@ -86,8 +86,16 @@ async function png() {
       ctx.fillStyle='#a9362b';ctx.font='bold 33px sans-serif';ctx.fillText(card.marks[i],0,0,182);ctx.restore();
     }
   }));
-  const link=document.createElement('a');
-  link.href=canvas.toDataURL('image/png');link.download='どうぶつビンゴ.png';link.click();
+  const url=canvas.toDataURL('image/png');
+  const dialog=document.createElement('dialog');
+  dialog.className='image-dialog';
+  dialog.setAttribute('aria-label','保存するカード');
+  dialog.innerHTML='<h2>カードの画像</h2><p class="muted">スマホでは画像を長押しして保存することもできます。</p><img alt="スタンプ付きのビンゴカード"><div class="row"><a download="どうぶつビンゴ.png">PNGをダウンロード</a><form method="dialog"><button>閉じる</button></form></div>';
+  dialog.querySelector('img').src=url;
+  dialog.querySelector('a').href=url;
+  dialog.addEventListener('close',()=>dialog.remove(),{once:true});
+  document.body.append(dialog);
+  dialog.showModal();
 }
 async function refresh(){config=await api('admin');}
 async function draw() {
